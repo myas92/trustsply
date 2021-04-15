@@ -5,9 +5,9 @@ const usersQuery = require('../services/users');
 const verifyUsersQuery = require('../services/verify-users');
 const { getVerifyCode } = require('../util/utility');
 const stVars = require('../const/static-variables');
-const Errors = require("../const/errors");
-const config = require("../config");
-const redisController = require("../util/redis-controller");
+const Errors = require('../const/errors');
+const config = require('../config');
+const redisController = require('../util/redis-controller');
 const { sendEmail } = require('../util/send-mail');
 class usersControllers {
 	constructor() {}
@@ -62,7 +62,7 @@ class usersControllers {
 	signUpConfirm = async (req, res, next) => {
 		try {
 			let { email, verifyCode } = req.body;
-			let {data} = await verifyUsersQuery.get(email);
+			let { data } = await verifyUsersQuery.get(email);
 			// ایمیلی برای توکن نبود و توکن نامعتبر بود
 			if (!data || data[0].verifyCode != verifyCode || data[0].isUsed == 1) {
 				let error = new HttpError(Errors.Invalid_verify_Code, req.language);
@@ -80,16 +80,16 @@ class usersControllers {
 			};
 
 			try {
-				let {userId} = await usersQuery.ConfirmUser(user);
+				let { userId } = await usersQuery.ConfirmUser(user);
 				let token = jwt.sign({ email, userId: userId }, config.JWT, {
 					expiresIn: stVars.EXPIRE_TIME_JWT_TOKEN
 				});
-				await redisController.hset('verifyCodes', userId , token);
+				await redisController.hset('verifyCodes', userId, token);
 				res.status(201).json({
 					status: 'success',
 					result: [
 						{
-							userId : userId,
+							userId: userId,
 							token
 						}
 					]
@@ -108,86 +108,103 @@ class usersControllers {
 	login = async (req, res, next) => {
 		try {
 			const { email, password } = req.body;
-			
-			let {data} = await usersQuery.getUserByEmail(email);
-			let existingUser = data[0]
+
+			let { data } = await usersQuery.getUserByEmail(email);
+			let existingUser = data[0];
 			if (!existingUser) {
-			  const error = new HttpError(Errors.Invalid_Username, req.language);
-			  return next(error);
+				const error = new HttpError(Errors.Invalid_Username, req.language);
+				return next(error);
 			}
 			//دریافت تعداد دفعات پسورد اشتباه وارد شده
-			let countIncorrectPassword = await redisController.get(
-			  "password",
-			  existingUser.id
-			);
+			let countIncorrectPassword = await redisController.get('password', existingUser.id);
 			//چند بار پسورد اشتباه وارد شده است
 			if (countIncorrectPassword > stVars.COUNT_BLOCKED_INCORRECT_PASSWORD) {
-			  const error = new HttpError(Errors.Account_Is_Disabled, req.language);
-			  return next(error);
+				const error = new HttpError(Errors.Account_Is_Disabled, req.language);
+				return next(error);
 			}
-	  
+
 			let isValidPassword = false;
 			try {
-			  isValidPassword = await bcrypt.compare(password, existingUser.password);
+				isValidPassword = await bcrypt.compare(password, existingUser.password);
 			} catch (err) {
-			  const error = new HttpError(Errors.Check_Credentials, req.language);
-			  return next(error);
+				const error = new HttpError(Errors.Check_Credentials, req.language);
+				return next(error);
 			}
 			if (!isValidPassword) {
-			  //افزودن تعداد دفعات پسورد اشتباه وارد شده
-			  await redisController.incr("password", existingUser.id);
-			  //وارد کردن اکسپایر تایم برای کلید
-			  redisController.setExpireTime(
-				"password",
-				existingUser.id,
-				stVars.TIME_BLOCKED_INCORRECT_PASSWORD
-			  );
-			  let error;
-			  if (countIncorrectPassword == stVars.COUNT_BLOCKED_INCORRECT_PASSWORD)
-				error = new HttpError(Errors.Account_Is_Disabled, req.language);
-			  else error = new HttpError(Errors.Invalid_Credentials, req.language);
-			  return next(error);
+				//افزودن تعداد دفعات پسورد اشتباه وارد شده
+				await redisController.incr('password', existingUser.id);
+				//وارد کردن اکسپایر تایم برای کلید
+				redisController.setExpireTime('password', existingUser.id, stVars.TIME_BLOCKED_INCORRECT_PASSWORD);
+				let error;
+				if (countIncorrectPassword == stVars.COUNT_BLOCKED_INCORRECT_PASSWORD)
+					error = new HttpError(Errors.Account_Is_Disabled, req.language);
+				else error = new HttpError(Errors.Invalid_Credentials, req.language);
+				return next(error);
 			}
-	  
-			await redisController.delete("password", existingUser.id);
+
+			await redisController.delete('password', existingUser.id);
 			let token;
 			try {
-			  token = jwt.sign(
-				{
-				  user_id: existingUser.id,
-				  email: existingUser.email,
-				},
-				config.JWT,
-				{ expiresIn: stVars.EXPIRE_TIME_JWT_TOKEN }
-			  );
+				token = jwt.sign(
+					{
+						userId: existingUser.id,
+						email: existingUser.email
+					},
+					config.JWT,
+					{ expiresIn: stVars.EXPIRE_TIME_JWT_TOKEN }
+				);
 			} catch (err) {
-			  const error = new HttpError(Errors.Loggin_Failed, req.language);
-			  return next(error);
+				const error = new HttpError(Errors.Loggin_Failed, req.language);
+				return next(error);
 			}
-	  
+
 			try {
-			  await redisController.hset("verifyCodes", existingUser.id, token);
-			  //redisController.setExpireTime("verifyCodes", existingUser._id);
+				await redisController.hset('verifyCodes', existingUser.id, token);
+				//redisController.setExpireTime("verifyCodes", existingUser._id);
 			} catch (err) {
-			  const error = new HttpError(Errors.Loggin_Failed, req.language);
-			  return next(error);
+				const error = new HttpError(Errors.Loggin_Failed, req.language);
+				return next(error);
 			}
 			res.json({
-			  status: "success",
-			  result: [
-				{
-				  userId: existingUser.id,
-				  token: token,
-				  expiresIn: stVars.EXPIRE_TIME_JWT_TOKEN
-				},
-			  ],
+				status: 'success',
+				result: [
+					{
+						userId: existingUser.id,
+						token: token,
+						expiresIn: stVars.EXPIRE_TIME_JWT_TOKEN
+					}
+				]
 			});
-		  } catch (err) {
+		} catch (err) {
 			console.log(err);
 			const error = new HttpError(Errors.Something_Went_Wrong, req.language);
 			return next(error);
-		  }
-
+		}
+	};
+	updateUser = async (req, res, next) => {
+		try {
+			const { name } = req.body;
+			const { uid } = req.params;
+			const { userId } = req.userData;
+			if (uid != userId) {
+				const error = new HttpError(Errors.User_Undefinded, req.language);
+				return next(error);
+			}
+			let { data } = await usersQuery.getUserById(userId);
+			if (!data) {
+				const error = new HttpError(Errors.Item_Is_Not_Founded, req.language);
+				return next(error);
+			}
+			await usersQuery.updateUser({ userId, name });
+			res.json({
+				status: 'success',
+				result: [ { name } ]
+			});
+		} catch (err) {
+			console.log(err);
+			const error = new HttpError(Errors.Something_Went_Wrong, req.language);
+			return next(error);
+		}
 	};
 }
 
