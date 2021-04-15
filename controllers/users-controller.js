@@ -2,6 +2,7 @@ const HttpError = require('../models/http-error');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const usersQuery = require('../services/users');
+const pokingQuery = require('../services/poking');
 const verifyUsersQuery = require('../services/verify-users');
 const { getVerifyCode } = require('../util/utility');
 const stVars = require('../const/static-variables');
@@ -217,7 +218,42 @@ class usersControllers {
 			}
 			res.json({
 				status: 'success',
-				result : data
+				result: data
+			});
+		} catch (err) {
+			console.log(err);
+			const error = new HttpError(Errors.Something_Went_Wrong, req.language);
+			return next(error);
+		}
+	};
+	createPoking = async (req, res, next) => {
+		try {
+			const { uid } = req.params;
+			const { toUserId, info } = req.body;
+
+			let { data } = await pokingQuery.insert({ fromUserId: uid, toUserId, info });
+			res.json({
+				status: 'success',
+				result: [ data ]
+			});
+		} catch (err) {
+			console.log(err);
+			const error = new HttpError(Errors.Something_Went_Wrong, req.language);
+			return next(error);
+		}
+	};
+	getPoking = async (req, res, next) => {
+		try {
+			const { uid } = req.params;
+			const { userId } = req.userData;
+			if (uid != userId) {
+				const error = new HttpError(Errors.User_Undefinded, req.language);
+				return next(error);
+			}
+			let { data } = await pokingQuery.getById(userId);
+			res.json({
+				status: 'success',
+				result: data
 			});
 		} catch (err) {
 			console.log(err);
