@@ -5,6 +5,7 @@ const userSchema = require("../schema/user-schema");
 const { validator } = require("../middleware/joi-validator");
 const checkAuth = require("../middleware/check-auth");
 router.get('/', usersControllers.getUsers);
+router.get('/search', usersControllers.search);
 router.put('/:uid',checkAuth, usersControllers.updateUser);
 router.post('/signup', validator(userSchema.signup, "body"), usersControllers.signUp);
 router.post('/signup/confirm', validator(userSchema.signupConfirm, "body"), usersControllers.signUpConfirm);

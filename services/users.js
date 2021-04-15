@@ -44,6 +44,17 @@ async function updateUser(input) {
 		throw error;
 	}
 }
+async function search(keyword) {
+	try {
+		let sql = `SELECT id, name, email FROM users WHERE CONCAT_WS('', name, email) LIKE '%${keyword}%' `;
+		const data = await db.query(sql);
+		return {
+			data
+		};
+	} catch (error) {
+		throw error;
+	}
+}
 async function ConfirmUser(input) {
 	const connection = await db.connection();
 	try {
@@ -71,5 +82,6 @@ module.exports = {
 	getUserByEmail,
 	ConfirmUser,
 	getUserById,
-	updateUser
+	updateUser,
+	search
 };
