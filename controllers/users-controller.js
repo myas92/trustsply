@@ -261,6 +261,18 @@ class usersControllers {
 			return next(error);
 		}
 	};
+	logout = async (req, res, next) => {
+		try {
+			let { userId } = req.userData;
+			await redisController.delete("verifyCodes", userId);
+			res.status(201).json({ status: "success", result: [{}] });
+		} catch (err) {
+			console.log(err);
+			const error = new HttpError(Errors.Something_Went_Wrong, req.language);
+			return next(error);
+		}
+	};
+
 }
 
 module.exports = new usersControllers();
