@@ -1,5 +1,11 @@
 const db = require('./db');
 const { v4: uuid } = require('uuid');
+async function getUsersById(id) {
+	const data = await db.query(`SELECT id, name FROM users WHERE id = '${id}'`);
+	return {
+		data
+	};
+}
 async function getUsers() {
 	const data = await db.query('SELECT id, name, email FROM users');
 	const meta = { page: 1 };
@@ -83,5 +89,6 @@ module.exports = {
 	ConfirmUser,
 	getUserById,
 	updateUser,
-	search
+	search,
+	getUsersById
 };
