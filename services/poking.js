@@ -1,13 +1,6 @@
 const db = require('./db');
 const { v4: uuid } = require('uuid');
-async function getUsers() {
-	const data = await db.query('SELECT id, name, email FROM users');
-	const meta = { page: 1 };
-	return {
-		data,
-		meta
-	};
-}
+
 async function insert({ fromUserId, toUserId, info }) {
 	try {
 		let id = uuid();
@@ -25,8 +18,8 @@ async function getById(usedId) {
 	try {
 		let getSql = `SELECT id, info FROM poking WHERE toUserId = '${usedId}' AND isSeen = false`;
 		const data = await db.query(getSql);
-		let updateSql = `UPDATE poking SET isSeen = true WHERE toUserId = '${usedId}'`;
-		await db.query(updateSql);
+		// let updateSql = `UPDATE poking SET isSeen = true WHERE toUserId = '${usedId}'`;
+		// await db.query(updateSql);
 		return {
 			data
 		};
@@ -34,32 +27,23 @@ async function getById(usedId) {
 		throw error;
 	}
 }
-
-
-async function ConfirmUser(input) {
-	const connection = await db.connection();
+async function updateById(usedId) {
 	try {
-		let userId = uuid();
-		await connection.query('START TRANSACTION');
-		let { verifyUserId, name, email, password } = input;
-		let sqlUsers = `INSERT INTO users (id, name, email, password)
-		            VALUES ('${userId}','${name}','${email}','${password}')`;
-		await connection.query(sqlUsers);
-		let sqlVerifyUser = `UPDATE verify_users SET isUsed = true WHERE id = '${verifyUserId}'`;
-		await connection.query(sqlVerifyUser);
-		await connection.query('COMMIT');
-		return { userId };
+		let updateSql = `UPDATE poking SET isSeen = true WHERE toUserId = '${usedId}'`;
+		await db.query(updateSql);
+		return {
+			data : true
+		};
 	} catch (error) {
-		await connection.query('ROLLBACK');
-		console.log('ROLLBACK at querySignUp', error);
 		throw error;
-	} finally {
-		await connection.close();
 	}
 }
+
+
 
 module.exports = {
 	insert,
 	getById,
+	updateById
 
 };

@@ -12,10 +12,20 @@ const redisController = require('../util/redis-controller');
 const { sendEmail } = require('../util/send-mail');
 class usersControllers {
 	constructor() {}
+	getUserById = async (req, res, next) => {
+		try {
+			let { uid } = req.params;
+			let { data } = await usersQuery.getUsersById(uid);
+			res.status(200).json({ status: 'success', result: data });
+		} catch (err) {
+			console.log(err);
+			const error = new HttpError(Errors.Something_Went_Wrong, req.language);
+			return next(error);
+		}
+	};
 	getUsers = async (req, res, next) => {
 		try {
 			let { data } = await usersQuery.getUsers();
-			console.log(data);
 			res.status(200).json({ status: 'success', result: data });
 		} catch (err) {
 			console.log(err);
@@ -43,7 +53,7 @@ class usersControllers {
 				expireDate: Date.now() + stVars.EXPIRE_TIME_TOKEN
 			});
 
-			sendEmail(email, verifiyCode);
+			// sendEmail(email, verifiyCode);
 			res.status(201).json({
 				status: 'success',
 				result: [
@@ -91,7 +101,8 @@ class usersControllers {
 					result: [
 						{
 							userId: userId,
-							token
+							token,
+							expiresIn: stVars.EXPIRE_TIME_JWT_TOKEN
 						}
 					]
 				});
@@ -261,18 +272,36 @@ class usersControllers {
 			return next(error);
 		}
 	};
-	logout = async (req, res, next) => {
+	updateById = async (req, res, next) => {
 		try {
-			let { userId } = req.userData;
-			await redisController.delete("userTokens", userId);
-			res.status(201).json({ status: "success", result: [] });
+			const { uid } = req.params;
+			const { userId } = req.userData;
+			if (uid != userId) {
+				const error = new HttpError(Errors.User_Undefinded, req.language);
+				return next(error);
+			}
+			let { data } = await pokingQuery.updateById(userId);
+			res.json({
+				status: 'success',
+				result: data
+			});
 		} catch (err) {
 			console.log(err);
 			const error = new HttpError(Errors.Something_Went_Wrong, req.language);
 			return next(error);
 		}
 	};
-
+	logout = async (req, res, next) => {
+		try {
+			let { userId } = req.userData;
+			await redisController.delete('userTokens', userId);
+			res.status(201).json({ status: 'success', result: [] });
+		} catch (err) {
+			console.log(err);
+			const error = new HttpError(Errors.Something_Went_Wrong, req.language);
+			return next(error);
+		}
+	};
 }
 
 module.exports = new usersControllers();
