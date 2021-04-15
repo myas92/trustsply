@@ -16,7 +16,7 @@ module.exports = async (req, res, next) => {
     }
     const decodedToken = jwt.verify(token, config.JWT);
     let identifiedToken = await redisController.hget(
-      "verifyCodes",
+      "userTokens",
       decodedToken.userId,
       token
     );
