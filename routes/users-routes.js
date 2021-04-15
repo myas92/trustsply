@@ -12,5 +12,6 @@ router.put('/:uid', checkAuth, usersControllers.updateUser);
 router.post('/signup', validator(userSchema.signup, 'body'), usersControllers.signUp);
 router.post('/signup/confirm', validator(userSchema.signupConfirm, 'body'), usersControllers.signUpConfirm);
 router.post('/login', validator(userSchema.login, 'body'), usersControllers.login);
+router.get('/logout',checkAuth, usersControllers.logout);
 
 module.exports = router;

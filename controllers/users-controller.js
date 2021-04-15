@@ -85,7 +85,7 @@ class usersControllers {
 				let token = jwt.sign({ email, userId: userId }, config.JWT, {
 					expiresIn: stVars.EXPIRE_TIME_JWT_TOKEN
 				});
-				await redisController.hset('verifyCodes', userId, token);
+				await redisController.hset('userTokens', userId, token);
 				res.status(201).json({
 					status: 'success',
 					result: [
@@ -160,7 +160,7 @@ class usersControllers {
 			}
 
 			try {
-				await redisController.hset('verifyCodes', existingUser.id, token);
+				await redisController.hset('userTokens', existingUser.id, token);
 				//redisController.setExpireTime("verifyCodes", existingUser._id);
 			} catch (err) {
 				const error = new HttpError(Errors.Loggin_Failed, req.language);
@@ -261,6 +261,18 @@ class usersControllers {
 			return next(error);
 		}
 	};
+	logout = async (req, res, next) => {
+		try {
+			let { userId } = req.userData;
+			await redisController.delete("userTokens", userId);
+			res.status(201).json({ status: "success", result: [] });
+		} catch (err) {
+			console.log(err);
+			const error = new HttpError(Errors.Something_Went_Wrong, req.language);
+			return next(error);
+		}
+	};
+
 }
 
 module.exports = new usersControllers();
