@@ -206,6 +206,25 @@ class usersControllers {
 			return next(error);
 		}
 	};
+
+	search = async (req, res, next) => {
+		try {
+			const { keyword } = req.query;
+			let { data } = await usersQuery.search(keyword);
+			if (!data) {
+				const error = new HttpError(Errors.Item_Is_Not_Founded, req.language);
+				return next(error);
+			}
+			res.json({
+				status: 'success',
+				result : data
+			});
+		} catch (err) {
+			console.log(err);
+			const error = new HttpError(Errors.Something_Went_Wrong, req.language);
+			return next(error);
+		}
+	};
 }
 
 module.exports = new usersControllers();
